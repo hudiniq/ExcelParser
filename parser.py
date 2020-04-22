@@ -8,7 +8,6 @@ orders_position = []
 order_counter = 0
 orders = []
 
-
 #def name_headers():
 for i in range(0, len(df.columns)):
     headers.append(str(i))
@@ -24,42 +23,36 @@ for index, row in df.iterrows():
 for index, row in islice(df.iterrows(), start, None):
     try:
         int(row[0])
-        orders_position.append(index)
+        for index2, row2 in islice(df.iterrows(), index, None):
+            if row2[0] == "UN":
+                order_end = index2
+                break
+        orders_position.append((index, order_end - 1))
     except ValueError:
         pass
 
 #def fill_orders():
-"""
-Za vsako narocilo za katerega sem shranil pozicijo, gre cez vrstice
-med njegovo pozicijo in pozicijo naslednjega (-3 ker zadnje 3 vrstice niso artikli),
-zapise artikle v item ki ga zapise v list orderjev.
-Ce pri zadnjem vrne IndexError, ko isce naslednji element, izvrsi kodo ki gleda konec dokumenta.
-"""
-for order in orders_position:
-    try:
-        for index, row in islice(df.iterrows(), order + 1, orders_position[orders_position.index(order) + 1] - 3):
-            item = {
-                "supplier_code" : df.iloc[order, 0],
-                "lotto" : row[5],
-                "opis" : row[12],
-                "kolicina" : int(row[9] / 1000),
-                "code" : None,
-            }
-            orders.append(item)
-            print(item)
-    except IndexError:
-        for index, row in islice(df.iterrows(), order + 1, len(df) - 6):
-            item = {
-                "supplier_code" : df.iloc[order, 0],
-                "lotto" : row[5],
-                "opis" : row[12],
-                "kolicina" : row[9],
-                "code" : None,
-            }
-            orders.append(item)
-            print(item)
+for order, order_end in orders_position:
 
-# print(orders)
+    code_row = df.iloc[order_end]
 
-# print(df.iloc[start:])
-# print(orders_position)
+    for c in code_row:
+        try:
+            code = int(c)
+        except ValueError:
+            pass
+
+    for index, row in islice(df.iterrows(), order + 1, order_end):
+        item = {
+            "supplier_code" : df.iloc[order, 0],
+            "lotto" : row[5],
+            "opis" : row[12],
+            "kolicina" : int(row[9] / 1000),
+            "code" : code,
+        }
+        orders.append(item)
+
+
+df_out = pd.DataFrame(orders)
+
+df_out.to_excel("output.xlsx", index=False)
